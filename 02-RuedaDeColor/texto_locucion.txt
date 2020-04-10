@@ -1,0 +1,152 @@
+David programa
+episodio 02 - rueda de color
+
+--------------------------------------------------------------------
+
+Hola amigos, y bienvenidos a David Programa.
+
+Hoy vamos a ver cómo programar una rueda de color,
+en concreto cómo calcular las componentes R (roja), G (verde), y B (azul),
+para un valor H que representa el matiz o tono de color.
+
+En nuestro ejemplo, las componentes R, G y B
+van a tener valores entre 0 (mínimo) y 1 (máximo).
+
+El matiz H también va a tener valores entre 0 y 1,
+y lo vamos a representar en una rueda.
+
+Colocamos el rojo en H = 0, el verde en H = 1/3 y el azul en H = 2/3.
+Como estamos en una rueda, al cerrar el círculo tenemos otra vez rojo en H = 1.
+
+Ya hemos colocado los 3 colores primarios,
+ahora vamos a colocar los tres colores
+que se obtienen al mezclar los primarios por parejas.
+
+Entre el rojo y el verde va el amarillo,
+entre el verde y el azul va el cyan,
+y entre el azul y el rojo, el magenta.
+
+Estos son los valores R, G, B para estos 6 colores básicos:
+
+          R G B      H
+rojo    : 1 0 0      0
+amarillo: 1 1 0     1/6
+verde   : 0 1 0     2/6
+cyan    : 0 1 1     3/6
+azul    : 0 0 1     4/6
+magenta : 1 0 1     5/6
+
+Si los dibujamos en una gráfica, vemos que R, G, B toman los valores 1 o 0.
+Si unimos los puntos con líneas rectas
+podemos ver cómo calcular los colores intermedios que hay entre colores básicos.
+
+Así que lo que tenemos que programar es esta gráfica,
+vamos a ver un ejemplo sencillo en JavaScript.
+
+En el panel de la izquierda tengo el código,
+y en el de la derecha el resultado.
+
+De momento tengo una función muy simple
+que devuelve R a 0, G a 0 y B a 0, es decir, negro.
+
+Lo primero que voy a hacer es asegurarme
+de que el valor de h esté comprendido entre 0 y 1.
+
+Después multiplico h por 6,
+porque voy a aproximar la función por tramos,
+y es más fácil tener tramos de 0 a 1, de 1 a 2, etc
+que de 0 a 1/6, 1/6 a 2/6... me entendéis.
+
+Vamos a fijarnos en el primer tramo, con H entre 0 y 1.
+R siempre vale 1, B siembre vale 0, y es G el que va entre 0 y 1.
+Si H vale 0, G vale 0, y si H vale 1, G vale 1.
+Así que lo programamos:
+si i es menor o igual a uno,
+R es igual 1,
+G es igual a H,
+y B es igual a 0.
+Refresco, y ya tenemos el primer tramo.
+
+Vamos con el segundo.
+G siempre vale 1 y B siempre vale 0.
+Si H vale 1, R vale 1 y si H vale 2, R vale 0.
+Así que R es igual a 2 menos h.
+Lo programamos:
+si i es menor o igual a 2,
+R es igual a 2 menos h, 
+G es igual a 1
+y B es igual a 0.
+Refresco, y tenemos el segundo tramo.
+
+Los demás tramos siguen el mismo esquema,
+cada uno con sus particularidades.
+Así que voy a acelerar el vídeo...
+
+Y así queda la función que calcula los valores R, G, B
+para un matiz de color H dado.
+
+Tenéis el código y algunos ejemplos
+en la descripción del vídeo.
+
+Espero que os haya gustado
+y nos vemos en el próximo vídeo.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

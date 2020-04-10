@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!--
+    <meta http-equiv="refresh" content="1">
+    -->
+    
+    <title>davidprograma - tira de color</title>
+
+    <script src="rgb4h.js"></script>
+    <script src="draw_helpers.js"></script>
+    <style>
+* {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+#theCanvas {
+    position: absolute;
+}
+    </style>
+
+</head>
+<body>
+    
+    <canvas id="theCanvas"></canvas>
+
+    <script>
+
+var canvas;
+var ctx;
+
+var xmin, ymin, xmax, ymax;
+var winw, winh;
+
+function onLoad()
+{
+    console.log('onLoad');
+
+    canvas = document.getElementById("theCanvas");
+    ctx = canvas.getContext('2d');
+
+    onResize();
+
+}
+
+function onResize()
+{
+    console.log('onResize');
+
+    winw = window.innerWidth;
+    winh = window.innerHeight;
+
+    if (winw < 1 || winh < 1)
+        return;
+
+    var sz = 160;
+
+    var asp = winw / winh;
+    if (winw > winh) {
+        xmin = -sz;
+        xmax =  sz;
+        ymin = -sz / asp;
+        ymax =  sz / asp;
+    }
+    else {
+        ymin = -sz;
+        ymax =  sz;
+        xmin = -sz * asp;
+        xmax =  sz * asp;
+    }
+
+    setupCanvas(canvas, ctx, winw, winh, xmin, xmax, ymin, ymax);
+
+    draw();
+}
+
+window.addEventListener('load', onLoad);
+window.addEventListener('resize', onResize);
+
+function setupCanvas(cnv, ctx, w, h, x0, x1, y0, y1)
+{
+    cnv.width = w;
+    cnv.height = h;
+
+    var dx = x1 - x0;
+    var dy = y1 - y0;
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(w/dx, h/dy);
+    ctx.translate(-x0, -y0);
+}
+
+function draw() {
+    ctx.fillStyle = "black";
+    ctx.fillRect(xmin, ymin, xmax-xmin, ymax-ymin);
+
+    colors = ['#F00', '#FF0', '#0F0', '#0FF', '#00F', '#F0F', '#F00'];
+
+    if (winw > winh) {
+        drawColorStripHorizEx(ctx, -140, -20, 280, 40, 1536);
+        for (i = 0; i <= 6; i++) {
+            var x = -140 + i * 280 / 6;
+            var y = -20 + 40 + 2;
+            drawTriangleMark(ctx, x, y, 6, 5, colors[i]);
+        }
+    }
+    else {
+        drawColorStripVertEx(ctx, -20, -140, 40, 280, 1536);
+        for (i = 0; i <= 6; i++) {
+            var y = -140 + i * 280 / 6;
+            var x = -20 + 40 + 2;
+            drawTriangleMark2(ctx, x, y, 5, 6, colors[i]);
+        }
+    }
+}
+    </script>
+</body>
+</html>
