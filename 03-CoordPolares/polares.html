@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>David programa - coordenadas polares</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" media="screen" href="common.css" />
+    <script src="ezdraw.js"></script>
+    <script src="common.js"></script>
+
+<script>
+
+</script>
+
+    <style>
+
+.ezdraw_container {
+    height: 400px;
+    margin: 2em auto 2em auto;
+    max-width: 400px;
+}
+
+pre {
+    margin-left: 1em;
+    font-size: 1.25em;
+}
+
+li {
+    margin-top: -0.5em;
+    margin-bottom: -0.5em;
+}
+
+#ez01_values,
+#ez02_values {
+    margin-top: -2em;
+    margin-bottom: 1em;
+    text-align: center;
+}
+
+#ez01_val_x {
+    margin-right: 2.5em;
+    color: #F00;
+}
+
+#ez01_val_y {
+    margin-left: 2.5em;
+    color: #0A0;
+}
+
+#ez02_val_x {
+    margin-right: 2.5em;
+    color: #06F;
+}
+
+#ez02_val_y {
+    margin-left: 2.5em;
+    color: #C60
+}
+
+#ez12_val_n1,
+#ez12_val_n2,
+#ez12_val_i {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+
+#ez01_slider_x_container .slider_knob {
+    background: #F00;
+}
+
+#ez01_slider_y_container .slider_knob {
+    background: #0A0;
+}
+
+#ez02_slider_x_container .slider_knob {
+    background: #06F;
+}
+
+#ez02_slider_y_container .slider_knob {
+    background: #C60;
+}
+
+    </style>
+</head>
+<body>
+    <div id="content">
+        <div class="article">
+            <a href="https://www.youtube.com/channel/UCygCiziBCszld6jqV0VZmLg">
+                <img style="margin: 0px auto" src="dapr.png">
+            </a>
+            <H2 style="text-align: center; margin-bottom: -10px">Coordenadas polares</H2>
+
+            <div class="ezdraw_container">
+                <canvas id="ez02"></canvas>
+            </div>
+            <p id="ez02_values"><span id="ez02_val_x">r = RR</span>&nbsp;<span id="ez02_val_y">a = A.AA</span></p>
+            <div id="ez02_slider_x_container"></div>
+            <div id="ez02_slider_y_container"></div>
+
+            
+        </div>
+    </div>
+
+<script>
+let bgcolor = "#F8F8F8";    
+let fgcolor = "#222";
+let color1 = "#F00";
+let color2 = "#0A0";
+let color3 = "#06F";
+let color4 = "#C60";
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+let polar = function(r, a)
+{
+    let x = r * Math.cos(a);
+    let y = r * Math.sin(a);
+    return {x:x,y:y};
+}
+
+let polar2 = function(r, a)
+{
+    let x = r * Math.cos(a);
+    let y = -r * Math.sin(a);
+    return {x:x,y:y};
+}
+
+let ez02 = createEZDraw('ez02');
+ez02.vmax = 100;
+ez02.r = 64;
+ez02.a = 0.7;
+ez02.draw = function() {
+    ez02.clear(bgcolor);
+    let v = ez02.vmax;
+    let r = ez02.r;
+    let a = ez02.a;
+    let p = polar(r,a);
+    let x = p.x;
+    let y = p.y;
+    let pv = polar(v,a)
+    ez02.xlimits(-v,v);
+    ez02.ylimits(-v,v);
+
+    ez02.linewidth(1.5);
+    ez02.linecolor(fgcolor);
+    ez02.line(-v,0,v,0);
+    ez02.line(0,-v,0,v);
+
+    ez02.linewidth(0.75);
+    ez02.fillcolor();
+    ez02.linecolor(color3);
+    ez02.circle(0, 0, r);
+    ez02.linecolor(color4);
+    ez02.line(0, 0, pv.x, pv.y);
+
+    ez02.linewidth(0.75);
+    ez02.linecolor(fgcolor);
+    ez02.fillcolor(bgcolor)
+    ez02.circle(x,y,2.5);
+}
+
+window.addEventListener('load', function(){
+    ez02.setup();
+    ez02.onResize();
+
+    let ez02_val_x = document.getElementById('ez02_val_x');
+    new Slider(document.getElementById('ez02_slider_x_container'), function (x) {
+        ez02.r = 100 * x;
+        ez02_val_x.innerHTML = 'r = ' + parseInt(ez02.r);
+        ez02.run();
+    }, undefined, 0.64);
+
+    let ez02_val_y = document.getElementById('ez02_val_y');
+    new Slider(document.getElementById('ez02_slider_y_container'), function (y) {
+        ez02.a =  2 * Math.PI * y;
+        ez02_val_y.innerHTML = 'α = ' + parseInt(180*ez02.a/Math.PI) + 'º';
+        ez02.run();
+    }, undefined, 0.1);
+});
+
+    </script>
+</body>
+</html>
