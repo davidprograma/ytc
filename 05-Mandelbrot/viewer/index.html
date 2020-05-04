@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>DavidPrograma / Mandelbrot / WebGL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; }
+        canvas { width: 100%; height: 100%;}
+    </style>
+
+</head>
+<body>
+    <canvas id="leCanvas"></canvas>
+
+    <script type="x-shader/x-vertex" id="vertexShader"
+>#version 100
+ 
+// an attribute is an input (in) to a vertex shader.
+// It will receive data from a buffer
+attribute vec3 a_position;
+
+varying vec2 texcoord;
+ 
+// all shaders have a main function
+void main() {
+ 
+    // gl_Position is a special variable a vertex shader
+    // is responsible for setting
+    gl_Position = vec4(a_position, 1.0);
+
+    texcoord = a_position.xy;
+}
+    </script>
+
+    <script type="x-shader/x-fragment" id="fragmentShader"
+>#version 100
+ 
+// fragment shaders don't have a default precision so we need
+// to pick one. mediump is a good default. It means "medium precision"
+precision highp float;
+ 
+varying vec2 texcoord;
+
+vec3 colorwheel0(float hue01) {
+    float h6 = 6.0 * fract(hue01);
+    float r = clamp(-1.0 + abs(h6 - 3.0), 0.0, 1.0);
+    float g = clamp(+2.0 - abs(h6 - 2.0), 0.0, 1.0);
+    float b = clamp(+2.0 - abs(h6 - 4.0), 0.0, 1.0);
+    return vec3(r, g, b);
+}
+
+vec3 colorwheel(float hue01)
+{
+    vec3 c0 = vec3(0.0,0.6,1.0);
+    vec3 c1 = vec3(1.0,1.0,1.0);
+    vec3 c2 = vec3(1.0,0.5,0.0);
+    vec3 c3 = vec3(0.3,0.0,0.3);
+    float h = 4.0 * fract(hue01);
+    if (h <= 1.0) {
+        float k1 = 1.0 - h;
+        float k2 = h;
+        return c0 * k1 + c1 * k2;
+    }
+    else if (h <= 2.0) {
+        float k1 = 2.0 - h;
+        float k2 = h - 1.0;
+        return c1 * k1 + c2 * k2;
+    }
+    else if (h <= 3.0) {
+        float k1 = 3.0 - h;
+        float k2 = h - 2.0;
+        return c2 * k1 + c3 * k2;
+    }
+    else {
+        float k1 = 4.0 - h;
+        float k2 = h - 3.0;
+        return c3 * k1 + c0 * k2;
+    }
+
+}
+
+vec3 colorwheel1(float hue01) {
+    float h = 6.0 * fract(hue01);
+    float r = 0.0;
+    float g = 0.0;
+    float b = 0.0;
+    float dmg1 = 0.25;
+    float dmg2 = 1.0 - dmg1;
+
+    if (h <= 1.0) {
+        r = 1.0;
+        g = h;  // si h = 0, g = 0; si h = 1, g = 1
+        b = 0.0;
+    }
+    else if (h <= 2.0) {
+        r = 1.0; // si h = 1, r = 1; si h = 2, r = 0
+        g = 1.0;
+        b = h - 1.0;
+    }
+    else if (h <= 3.0) {
+        r = 3.0 - h;
+        g = 1.0;
+        b = 1.0; // si h = 2, b = 0; si h = 3, b = 1;
+    }
+    else if (h <= 4.0) {
+        r = 0.0;
+        g = 4.0 - h; // si h = 3, g = 1; si h = 4, g = 0
+        b = 1.0;
+    }
+    else if (h <= 5.0) {
+        r = dmg1 * (h - 4.0); // si h = 4, r = 0; si h = 5, r = 1
+        g = 0.0;
+        b = dmg1 + dmg2 * (5.0 - h);
+    }
+    else {
+        r = dmg1 + dmg2 * (h - 5.0);
+        g = 0.0;
+        b = dmg1 * (6.0 - h); // si h = 5, r = 1; si h = 6, r = 0
+    }
+
+    return vec3(r, g, b);
+}
+
+// Z(N+1) = Z(N)^2 + C !!!!
+vec2 iterate(vec2 z, vec2 c) {
+    return vec2(z.x * z.x - z.y * z.y + c.x,
+                      2.0 * z.x * z.y + c.y);
+}
+
+uniform int maxIters;
+uniform float aspect;
+uniform float colorScale;
+uniform vec2 center;
+uniform float zoom;
+
+void main() {
+    float u = texcoord.s;
+    float v = texcoord.t;
+    float cx = center.x + u / zoom;
+    float cy = center.y + v / (zoom * aspect);
+    vec2 c = vec2(cx, cy);
+
+    vec2 z = vec2(0.0, 0.0);
+    float maxr = 2.0;
+
+    for (int i = 0; i < 100000; i++) {
+        if (i >= maxIters)
+            break;
+        z = iterate(z, c);
+        if (length(z) > maxr) {
+            vec3 color = colorwheel(colorScale * float(i));
+            gl_FragColor = vec4(color.r, color.g, color.b, 1.0);
+            return;
+        }
+    }
+
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+}
+    </script>    
+    <script>
+
+function createShader(gl, type, source) {
+    var shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+    if (success) {
+        return shader;
+    }
+
+    console.log(gl.getShaderInfoLog(shader));  // eslint-disable-line
+    gl.deleteShader(shader);
+    return undefined;
+}
+
+function createProgram(gl, vertexShader, fragmentShader) {
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    var success = gl.getProgramParameter(program, gl.LINK_STATUS);
+    if (success) {
+        return program;
+    }
+
+    console.log(gl.getProgramInfoLog(program));  // eslint-disable-line
+    gl.deleteProgram(program);
+    return undefined;
+}
+
+var gl;
+var vao;
+var program;
+var vertex_buffer;
+var index_buffer;
+
+uniforms = {
+    maxIters:   { location: 0, value: 2000 },
+    aspect:     { location: 0, value: 1.0 },
+    colorScale: { location: 0, value: 1/40 },
+    center:     { location: 0, value: [-0.5, 0] },
+    zoom:       { location: 0, value: 0.7 }
+};
+
+window.addEventListener('load', function() {
+    init();
+    update();
+    draw();
+});
+
+function init() {
+    // Get A WebGL context
+    var canvas = document.getElementById("leCanvas");
+    gl = canvas.getContext("webgl");
+    if (!gl) {
+        return;
+    }
+    console.log(gl.getParameter(gl.VERSION));
+    console.log(gl.getParameter(gl.SHADING_LANGUAGE_VERSION));
+    console.log(gl.getParameter(gl.VENDOR));
+    console.log(gl);
+    resize();
+    window.addEventListener('resize', function() {
+        resize();
+        update();
+        draw();
+    });
+
+    canvas.addEventListener('wheel', onCanvasWheel);
+    canvas.addEventListener('mousedown', onCanvasMouseDown);
+    canvas.addEventListener('mousemove', onCanvasMouseMove);
+    canvas.addEventListener('mouseup', onCanvasMouseUp);
+
+
+    // create GLSL shaders, upload the GLSL source, compile the shaders
+    var vertexShaderSource =  document.getElementById( 'vertexShader' ).textContent;
+    var fragmentShaderSource = document.getElementById( 'fragmentShader' ).textContent;
+
+    var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+
+    // Link the two shaders into a program
+    program = createProgram(gl, vertexShader, fragmentShader);
+
+    // look up where the vertex data needs to go.
+    var positionAttributeLocation = gl.getAttribLocation(program, "a_position");
+
+    // look up uniform parameters
+    uniforms.maxIters.location   = gl.getUniformLocation(program, "maxIters");
+    uniforms.aspect.location     = gl.getUniformLocation(program, "aspect");
+    uniforms.colorScale.location = gl.getUniformLocation(program, "colorScale");
+    uniforms.center.location     = gl.getUniformLocation(program, "center");
+    uniforms.zoom.location       = gl.getUniformLocation(program, "zoom");
+
+    var vertices = [
+        -1.0,  1.0, 0.0,
+        -1.0, -1.0, 0.0,
+         1.0, -1.0, 0.0,
+         1.0,  1.0, 0.0 
+    ];
+
+    indices = [3,2,1,3,1,0];
+
+    // Create an empty buffer object to store vertex buffer
+    vertex_buffer = gl.createBuffer();
+
+    // Bind appropriate array buffer to it
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+
+    // Pass the vertex data to the buffer
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+
+    // Unbind the buffer
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    // Create an empty buffer object to store Index buffer
+    index_Buffer = gl.createBuffer();
+
+    // Bind appropriate array buffer to it
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_Buffer);
+
+    // Pass the vertex data to the buffer
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+    // Unbind the buffer
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+}
+
+function resize() {
+    gl.canvas.width = window.innerWidth;
+    gl.canvas.height = window.innerHeight;
+
+    uniforms.aspect.value =gl.canvas.width / gl.canvas.height;
+
+    // Tell WebGL how to convert from clip space to pixels
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+}
+
+function update() {
+    // Tell it to use our program (pair of shaders)
+    gl.useProgram(program);
+
+    gl.uniform1i(uniforms.maxIters.location, uniforms.maxIters.value);
+    gl.uniform1f(uniforms.aspect.location, uniforms.aspect.value);
+    gl.uniform1f(uniforms.colorScale.location, uniforms.colorScale.value);
+    gl.uniform2f(uniforms.center.location, uniforms.center.value[0], uniforms.center.value[1]);
+    gl.uniform1f(uniforms.zoom.location, uniforms.zoom.value);
+}
+
+function draw() {
+    // Clear the canvas
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Tell it to use our program (pair of shaders)
+    gl.useProgram(program);
+
+    // Bind vertex buffer object
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+
+    // Bind index buffer object
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_Buffer); 
+
+    // Get the attribute location
+    var coord = gl.getAttribLocation(program, "a_position");
+
+    // Point an attribute to the currently bound VBO
+    gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
+
+    // Enable the attribute
+    gl.enableVertexAttribArray(coord);
+
+    /*============= Drawing the Quad ================*/
+
+    // Clear the canvas
+    gl.clearColor(0.5, 0.5, 0.5, 0.9);
+
+    // Clear the color buffer bit
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Draw the triangle
+    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT,0);
+  
+    gl.finish();
+    gl.flush()
+}
+
+function onCanvasMouseDown(ev) {
+    // console.log(ev);
+    var x = ev.pageX;
+    var y = ev.pageY;
+    x0 = x;
+    y0 = y;
+    dragging = true;
+}
+
+var dragging = false;
+var x0, y0;
+
+function onCanvasMouseMove(ev) {
+    // console.log(ev);
+    if (!dragging)
+        return;
+    var x = ev.pageX;
+    var y = ev.pageY;
+    var dx = -2 * (x - x0) / (gl.canvas.width * uniforms.zoom.value);
+    var dy =  2 * (y - y0) / (gl.canvas.width * uniforms.zoom.value);
+    uniforms.center.value[0] += dx;
+    uniforms.center.value[1] += dy;
+    update();
+    draw();
+    x0 = x;
+    y0 = y;
+}
+
+function onCanvasMouseUp(ev) {
+    // console.log(ev);
+    var x = ev.pageX;
+    var y = ev.pageY;
+    dragging = false;
+}
+
+function onCanvasWheel(ev) {
+    // console.log(ev);
+    var x = ev.pageX;
+    var y = ev.pageY;
+    var dx, dy;
+    dx = (-1 + 2 * x / gl.canvas.width ) /  uniforms.zoom.value;
+    dy = ( 1 - 2 * y / gl.canvas.height) / (uniforms.zoom.value * uniforms.aspect.value);
+    uniforms.center.value[0] += dx;
+    uniforms.center.value[1] += dy;
+    if      (ev.deltaY > 0) uniforms.zoom.value *= 1.1;
+    else if (ev.deltaY < 0) uniforms.zoom.value /= 1.1;
+    dx = (-1 + 2 * x / gl.canvas.width ) /  uniforms.zoom.value;
+    dy = ( 1 - 2 * y / gl.canvas.height) / (uniforms.zoom.value * uniforms.aspect.value);
+    uniforms.center.value[0] -= dx;
+    uniforms.center.value[1] -= dy;
+    update();
+    draw();
+}
+    </script>
+</body>
+</html>
