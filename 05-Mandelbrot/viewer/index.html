@@ -3,45 +3,54 @@
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>DavidPrograma / Mandelbrot / WebGL</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DavidPrograma / Mandelbrot / WebGL2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <style>
         body { margin: 0; padding: 0; overflow: hidden; }
         canvas { width: 100%; height: 100%;}
     </style>
 
+    <!--
+        DavidPrograma - WebGL2/GPU Mandelbrot explorer
+    -->
+
 </head>
-<body>
+<body style="touch-action:none">
     <canvas id="leCanvas"></canvas>
 
     <script type="x-shader/x-vertex" id="vertexShader"
->#version 100
+>#version 300 es
  
 // an attribute is an input (in) to a vertex shader.
 // It will receive data from a buffer
-attribute vec3 a_position;
+in vec4 a_position;
 
-varying vec2 texcoord;
+out vec2 texcoord;
  
 // all shaders have a main function
 void main() {
  
     // gl_Position is a special variable a vertex shader
     // is responsible for setting
-    gl_Position = vec4(a_position, 1.0);
+    gl_Position = a_position;
 
     texcoord = a_position.xy;
 }
     </script>
 
+
+
     <script type="x-shader/x-fragment" id="fragmentShader"
->#version 100
+>#version 300 es
  
 // fragment shaders don't have a default precision so we need
 // to pick one. mediump is a good default. It means "medium precision"
 precision highp float;
  
-varying vec2 texcoord;
+// we need to declare an output for the fragment shader
+out vec4 outColor;
+
+in vec2 texcoord;
 
 vec3 colorwheel0(float hue01) {
     float h6 = 6.0 * fract(hue01);
@@ -51,7 +60,28 @@ vec3 colorwheel0(float hue01) {
     return vec3(r, g, b);
 }
 
+vec3 colors[4] = vec3[4](
+    vec3(0.0,0.6,1.0),
+    vec3(1.0,1.0,1.0),
+    vec3(1.0,0.5,0.0),
+    vec3(0.3,0.0,0.3)
+);
+
 vec3 colorwheel(float hue01)
+{
+    float h = 4.0 * fract(hue01);
+    float hf = fract(h);
+    int i1 = int(h);
+    int i2 = i1 + 1;
+    if (i2 >= 4) i2 -= 4;
+    float k1 = 1.0f - hf;
+    float k2 = hf;
+    vec3 c1 = colors[i1];
+    vec3 c2 = colors[i2];
+    return c1*k1 + c2*k2;
+}
+
+vec3 colorwheel2(float hue01)
 {
     vec3 c0 = vec3(0.0,0.6,1.0);
     vec3 c1 = vec3(1.0,1.0,1.0);
@@ -80,6 +110,7 @@ vec3 colorwheel(float hue01)
     }
 
 }
+
 
 vec3 colorwheel1(float hue01) {
     float h = 6.0 * fract(hue01);
@@ -123,10 +154,8 @@ vec3 colorwheel1(float hue01) {
     return vec3(r, g, b);
 }
 
-// Z(N+1) = Z(N)^2 + C !!!!
 vec2 iterate(vec2 z, vec2 c) {
-    return vec2(z.x * z.x - z.y * z.y + c.x,
-                      2.0 * z.x * z.y + c.y);
+    return vec2(c.x + z.x*z.x - z.y*z.y, c.y + 2.0*z.x*z.y);
 }
 
 uniform int maxIters;
@@ -145,18 +174,16 @@ void main() {
     vec2 z = vec2(0.0, 0.0);
     float maxr = 2.0;
 
-    for (int i = 0; i < 100000; i++) {
-        if (i >= maxIters)
-            break;
+    for (int i = 0; i < maxIters; i++) {
         z = iterate(z, c);
         if (length(z) > maxr) {
             vec3 color = colorwheel(colorScale * float(i));
-            gl_FragColor = vec4(color.r, color.g, color.b, 1.0);
+            outColor = vec4(color.r, color.g, color.b, 1.0);
             return;
         }
     }
 
-    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    outColor = vec4(0.0, 0.0, 0.0, 1.0);
 }
     </script>    
     <script>
@@ -193,16 +220,170 @@ function createProgram(gl, vertexShader, fragmentShader) {
 var gl;
 var vao;
 var program;
-var vertex_buffer;
-var index_buffer;
 
 uniforms = {
-    maxIters:   { location: 0, value: 2000 },
+    maxIters:   { location: 0, value: 2500 },
     aspect:     { location: 0, value: 1.0 },
     colorScale: { location: 0, value: 1/40 },
     center:     { location: 0, value: [-0.5, 0] },
     zoom:       { location: 0, value: 0.7 }
 };
+
+class DragZoomPointerHandler
+{
+    constructor(element)
+    {
+        this.element = element;
+        //canvas.addEventListener('wheel', onCanvasWheel);
+
+        let that = this;
+       
+        this.element.addEventListener('pointerdown',   function(ev) { that.onPointerDown(ev)});
+        this.element.addEventListener('pointermove',   function(ev) { that.onPointerMove(ev)});
+
+        this.element.addEventListener('pointerup',     function(ev) { that.onPointerUp(ev)});
+        this.element.addEventListener('pointercancel', function(ev) { that.onPointerUp(ev)});
+        this.element.addEventListener('pointerout',    function(ev) { that.onPointerUp(ev)});
+        this.element.addEventListener('pointerleave',  function(ev) { that.onPointerUp(ev)});
+
+        this.ptable = {};
+        this.pcount = 0;
+
+        this.logDragEvents = false;
+        this.logZoomEvents = false;
+    }
+
+    onPointerDown(ev)
+    {
+        //console.log("opdown", ev);
+
+        let pid = ev.pointerId;
+        let x = ev.pageX - this.element.offsetLeft;
+        let y = ev.pageY - this.element.offsetTop;
+
+        let pdata = {}
+        pdata.first = {x:x, y:y};
+        pdata.prev = {x:x, y:y};
+        pdata.curr = {x:x, y:y};
+
+        this.ptable[pid] = pdata;
+        this.pcount++;
+
+        //console.log(pid, x, y);
+
+        if (this.pcount == 1)
+        {
+            this.onDragStart(pdata.curr);
+        }
+        else if (this.pcount == 2)
+        {
+            let pdata1 = null;
+            let pdata2 = null;
+            for (pid in this.ptable) {
+                if      (pdata1 == null) pdata1 = this.ptable[pid];
+                else if (pdata2 == null) pdata2 = this.ptable[pid];
+            }
+            this.onZoom2TouchStart(pdata1.curr, pdata2.curr);
+        }
+    }
+
+    onPointerMove(ev)
+    {
+        //console.log("opmove", ev);
+
+        let pid = ev.pointerId;
+        let x = ev.pageX - this.element.offsetLeft;
+        let y = ev.pageY - this.element.offsetTop;
+
+        if (!(pid in this.ptable)) {
+            //console.log("DragZoomPointerHandler.onPointerMove: pointerId not in table: " + pid);
+            return;
+        }
+
+        let pdata = this.ptable[pid];
+        pdata.prev = pdata.curr;
+        pdata.curr = {x:x, y:y};
+
+        if (this.pcount == 1)
+        {
+            this.onDrag(pdata.curr, pdata.prev, pdata.first);
+        }
+        else if (this.pcount == 2)
+        {
+            let pdata1 = null;
+            let pdata2 = null;
+            for (pid in this.ptable) {
+                if      (pdata1 == null) pdata1 = this.ptable[pid];
+                else if (pdata2 == null) pdata2 = this.ptable[pid];
+            }
+            this.onZoom2Touch(pdata1.curr, pdata2.curr, pdata1.prev, pdata2.prev, pdata1.first, pdata2.first);
+        }
+    }
+
+    onPointerUp(ev)
+    {
+        //console.log("opup", ev);
+
+        let pid = ev.pointerId;
+        let x = ev.pageX - this.element.offsetLeft;
+        let y = ev.pageY - this.element.offsetTop;
+
+        if (pid in this.ptable)
+        {
+            let pdata = this.ptable[pid];
+            pdata.prev = pdata.curr;
+            pdata.curr = {x:x, y:y};
+
+            if (this.pcount == 1)
+            {
+                this.onDragEnd(pdata.curr, pdata.prev, pdata.first);
+            }
+
+            delete this.ptable[pid];
+            this.pcount--;
+        }
+
+        //console.log(pid, x, y);
+    }
+
+    onDragStart(curr)
+    {
+        if (this.logDragEvents) console.log('dragstart', curr.x, curr.y);
+    }
+
+    onDrag(curr, prev, first)
+    {
+        if (this.logDragEvents) console.log('drag', curr.x, curr.y, prev.x, prev.y, first.x, first.y);
+    }
+
+    onDragEnd(curr, prev, first)
+    {
+        if (this.logDragEvents) console.log('dragend', curr.x, curr.y, prev.x, prev.y, first.x, first.y);
+    }
+
+    onZoom2TouchStart(curr1, curr2)
+    {
+        if (this.logZoomEvents) console.log('zoom2touchstart',
+            curr1.x, curr1.y, curr2.x, curr2.y);
+    }
+
+    onZoom2Touch(curr1, curr2, prev1, prev2, first1, first2)
+    {
+        if (this.logZoomEvents) console.log('zoom2touch',
+            curr1.x, curr1.y, curr2.x, curr2.y,
+            prev1.x, prev1.y, prev2.x, prev2.y,
+            first1.x, first1.y, first2.x, first2.y);
+    }
+
+    onZoom2TouchEnd(curr1, curr2, prev1, prev2, first1, first2)
+    {
+        if (this.logZoomEvents) console.log('zoom2touchend',
+            curr1.x, curr1.y, curr2.x, curr2.y,
+            prev1.x, prev1.y, prev2.x, prev2.y,
+            first1.x, first1.y, first2.x, first2.y);
+    }
+}
+
 
 window.addEventListener('load', function() {
     init();
@@ -210,17 +391,26 @@ window.addEventListener('load', function() {
     draw();
 });
 
+var dragzoom;
+
+// Global vars to cache event state
+var evCache = new Array();
+var prevDiff = -1;
+
 function init() {
+    console.log("init004");
+
+
     // Get A WebGL context
     var canvas = document.getElementById("leCanvas");
-    gl = canvas.getContext("webgl");
+    gl = canvas.getContext("webgl2");
     if (!gl) {
         return;
     }
     console.log(gl.getParameter(gl.VERSION));
     console.log(gl.getParameter(gl.SHADING_LANGUAGE_VERSION));
     console.log(gl.getParameter(gl.VENDOR));
-    console.log(gl);
+
     resize();
     window.addEventListener('resize', function() {
         resize();
@@ -228,11 +418,8 @@ function init() {
         draw();
     });
 
+    dragzoom = new MandelDragZoom(canvas);
     canvas.addEventListener('wheel', onCanvasWheel);
-    canvas.addEventListener('mousedown', onCanvasMouseDown);
-    canvas.addEventListener('mousemove', onCanvasMouseMove);
-    canvas.addEventListener('mouseup', onCanvasMouseUp);
-
 
     // create GLSL shaders, upload the GLSL source, compile the shaders
     var vertexShaderSource =  document.getElementById( 'vertexShader' ).textContent;
@@ -254,38 +441,39 @@ function init() {
     uniforms.center.location     = gl.getUniformLocation(program, "center");
     uniforms.zoom.location       = gl.getUniformLocation(program, "zoom");
 
-    var vertices = [
-        -1.0,  1.0, 0.0,
-        -1.0, -1.0, 0.0,
-         1.0, -1.0, 0.0,
-         1.0,  1.0, 0.0 
+    // Create a buffer and put three 2d clip space points in it
+    var positionBuffer = gl.createBuffer();
+
+    // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+    var positions = [
+         1, -1,
+        -1,  1,
+         1,  1,
+        -1, -1,
+         1, -1,
+        -1,  1,
     ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
-    indices = [3,2,1,3,1,0];
+    // Create a vertex array object (attribute state)
+    vao = gl.createVertexArray();
 
-    // Create an empty buffer object to store vertex buffer
-    vertex_buffer = gl.createBuffer();
+    // and make it the one we're currently working with
+    gl.bindVertexArray(vao);
 
-    // Bind appropriate array buffer to it
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+    // Turn on the attribute
+    gl.enableVertexAttribArray(positionAttributeLocation);
 
-    // Pass the vertex data to the buffer
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-
-    // Unbind the buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-
-    // Create an empty buffer object to store Index buffer
-    index_Buffer = gl.createBuffer();
-
-    // Bind appropriate array buffer to it
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_Buffer);
-
-    // Pass the vertex data to the buffer
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-
-    // Unbind the buffer
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+    // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
+    var size = 2;          // 2 components per iteration
+    var type = gl.FLOAT;   // the data is 32bit floats
+    var normalize = false; // don't normalize the data
+    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
+    var offset = 0;        // start at the beginning of the buffer
+    gl.vertexAttribPointer(
+        positionAttributeLocation, size, type, normalize, stride, offset);
 }
 
 function resize() {
@@ -317,34 +505,17 @@ function draw() {
     // Tell it to use our program (pair of shaders)
     gl.useProgram(program);
 
-    // Bind vertex buffer object
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+    // Bind the attribute/buffer set we want.
+    gl.bindVertexArray(vao);
 
-    // Bind index buffer object
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_Buffer); 
+    // draw
+    var primitiveType = gl.TRIANGLES;
+    var offset = 0;
+    var count = 6;
+    gl.drawArrays(primitiveType, offset, count);
 
-    // Get the attribute location
-    var coord = gl.getAttribLocation(program, "a_position");
-
-    // Point an attribute to the currently bound VBO
-    gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0);
-
-    // Enable the attribute
-    gl.enableVertexAttribArray(coord);
-
-    /*============= Drawing the Quad ================*/
-
-    // Clear the canvas
-    gl.clearColor(0.5, 0.5, 0.5, 0.9);
-
-    // Clear the color buffer bit
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    // Draw the triangle
-    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT,0);
-  
     gl.finish();
-    gl.flush()
+    gl.flush();
 }
 
 function onCanvasMouseDown(ev) {
@@ -386,20 +557,64 @@ function onCanvasWheel(ev) {
     // console.log(ev);
     var x = ev.pageX;
     var y = ev.pageY;
+    var zoomfactor;
+    if      (ev.deltaY > 0) zoomfactor = 1*1.1;
+    else if (ev.deltaY < 0) zoomfactor = 1/1.1;
+    doZoom(x, y, zoomfactor);
+}
+
+function doZoom(x, y, zoomfactor)
+{
     var dx, dy;
     dx = (-1 + 2 * x / gl.canvas.width ) /  uniforms.zoom.value;
     dy = ( 1 - 2 * y / gl.canvas.height) / (uniforms.zoom.value * uniforms.aspect.value);
     uniforms.center.value[0] += dx;
     uniforms.center.value[1] += dy;
-    if      (ev.deltaY > 0) uniforms.zoom.value *= 1.1;
-    else if (ev.deltaY < 0) uniforms.zoom.value /= 1.1;
+    uniforms.zoom.value *= zoomfactor;
     dx = (-1 + 2 * x / gl.canvas.width ) /  uniforms.zoom.value;
     dy = ( 1 - 2 * y / gl.canvas.height) / (uniforms.zoom.value * uniforms.aspect.value);
     uniforms.center.value[0] -= dx;
     uniforms.center.value[1] -= dy;
     update();
     draw();
+    //console.log(uniforms.center.value, 4.0 / uniforms.zoom.value);
 }
+
+class MandelDragZoom extends DragZoomPointerHandler
+{
+    onDrag(curr, prev, first)
+    {
+        super.onDrag(curr, prev, first);
+
+        var dx = -2 * (curr.x - prev.x) / (gl.canvas.width * uniforms.zoom.value);
+        var dy =  2 * (curr.y - prev.y) / (gl.canvas.width * uniforms.zoom.value);
+        uniforms.center.value[0] += dx;
+        uniforms.center.value[1] += dy;
+        update();
+        draw();
+    }
+
+    onZoom2Touch(curr1, curr2, prev1, prev2, first1, first2)
+    {
+        super.onZoom2Touch(curr1, curr2, prev1, prev2, first1, first2)
+
+        var currdx = curr1.x - curr2.x;
+        var currdy = curr1.y - curr2.y;
+        var currdist = Math.sqrt(currdx*currdx + currdy*currdy);
+
+        var prevdx = prev1.x - prev2.x;
+        var prevdy = prev1.y - prev2.y;
+        var prevdist = Math.sqrt(prevdx*prevdx + prevdy*prevdy);
+
+        var currcx = (curr1.x + curr2.x) / 2;
+        var currcy = (curr1.y + curr2.y) / 2;
+
+        //console.log(currcx, currcy, currdist, prevdist);
+        doZoom(currcx, currcy, currdist / prevdist);
+    }
+
+}
+
     </script>
 </body>
 </html>
