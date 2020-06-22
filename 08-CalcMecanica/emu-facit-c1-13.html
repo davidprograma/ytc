@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, max-scale=1.0">
+    <title>DavidPrograma - MCE (Mechanical Calculator Emulator)</title>
+    <link href="https://fonts.googleapis.com/css2?family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">     
+<!--
+    <script src="./points.js"></script>
+-->    
+    <style>
+* {
+    margin: 0;
+    padding: 0;
+}        
+
+body {
+    overflow: hidden;
+}
+
+nocanvas {
+    margin: 50px 50px 50px 50px;
+}
+
+    </style>
+</head>
+<body>
+    <canvas id="theCanvas"></canvas>
+
+    <script>
+/**********************************/        
+
+window.addEventListener('load', function() {
+    onInit();
+});
+document.fonts.onloadingdone = function() {
+    onDraw();
+};
+
+
+var canvas;
+var ctx;
+var cw;
+var ch;
+
+var ww = 1000;
+var wh = 500;
+
+function onInit()
+{
+    // console.logconsole.log('onInit');
+    canvas = document.getElementById('theCanvas');
+    ctx = canvas.getContext('2d');
+
+    initScene();
+
+    var userAgent = window.navigator.userAgent;
+
+    
+    window.addEventListener('resize', onResize);
+    onResize();
+
+    // if ('ontouchstart' in window)
+    // {
+    //     canvas.addEventListener('touchstart', onMouseDown);
+    //     canvas.addEventListener('touchmove', onMouseMove);
+    //     canvas.addEventListener('touchend', onMouseUp);
+    //     canvas.addEventListener('touchcancel', onMouseUp);
+    // }
+    // else
+    // {
+    //     canvas.addEventListener('mousedown', onMouseDown);
+    //     canvas.addEventListener('mousemove', onMouseMove);
+    //     canvas.addEventListener('mouseup', onMouseUp);
+    //     canvas.addEventListener('mouseleave', onMouseUp);
+    //     canvas.addEventListener('mouseout', onMouseUp);
+    // }
+    if (userAgent.match(/iPad/i) || userAgent.match(/iPhone/i)) 
+    {
+        canvas.addEventListener('mousedown', onMouseDown);
+        canvas.addEventListener('mousemove', onMouseMove);
+        canvas.addEventListener('mouseup', onMouseUp);
+        canvas.addEventListener('mouseleave', onMouseUp);
+        canvas.addEventListener('mouseout', onMouseUp);
+    }
+    else
+    {
+        canvas.addEventListener('pointerdown', onMouseDown);
+        canvas.addEventListener('pointermove', onMouseMove);
+        canvas.addEventListener('pointerup', onMouseUp);
+        canvas.addEventListener('pointerleave', onMouseUp);
+        canvas.addEventListener('pointerout', onMouseUp);
+    }
+}
+
+
+function onResize()
+{
+    cw = window.innerWidth;
+    ch = window.innerHeight;
+    canvas.width = cw;
+    canvas.height = ch;
+
+    onDraw();
+}
+
+
+var cbludrk = '#123';
+var cbg = '#AAA';
+var cbg2 = '#CCC';
+var cblk = '#000';
+var cwhi = '#FFF';
+var cred = '#A11';
+var credrk = '#511';
+var cgry = '#666';
+var cdrk3 = '#333';
+var cdrk2 = '#222';
+var cdrk1 = '#111';
+var cbei = '#CBA';
+
+function setTransform(x, y, w, h)
+{
+    ctx.setTransform(w, 0, 0, h, x, y);
+}
+
+function drawLever(x, y, w, h)
+{
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'round';
+    ctx.lineMiter = 'round';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = cgry;
+    ctx.fillStyle = cbg2;
+
+    ctx.beginPath();
+    ctx.moveTo(x  , y-h/2);
+    ctx.lineTo(x+w, y-h/2);
+    ctx.lineTo(x+w, y+h/2);
+    ctx.lineTo(x  , y+h/2);
+    ctx.fill() 
+    ctx.stroke();
+
+    let w2 = w / 4;
+    let x2a = x + w2 * 2.5;
+    let x2b = x + w2 * 3.5;
+    let x2c = x + w2 * 4.5;
+    let x2d = x + w2 * 6.5;
+    let y2a = y - h * 0.75;
+    let y2b = y + h * 1;
+    let y2c = y + h * 2.25;
+    let y2d = y + h * 3.00;
+    let y2e = y + h * 3.45;
+    let y2f = y + h * 3.5;
+
+    ctx.beginPath();
+    ctx.moveTo(x2a, y2b);
+    ctx.lineTo(x2b, y2b);
+    ctx.quadraticCurveTo(x2c, y2c, x2d, y2d);
+    ctx.quadraticCurveTo(x2c, y2e, x2a, y2f);
+    ctx.closePath();
+    ctx.fill() 
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x2a-w2/2, y2a);
+    ctx.lineTo(x2a+w2/2, y2a);
+    ctx.lineTo(x2a+w2/2, y2f);
+    ctx.lineTo(x2a-w2/2, y2f);
+    ctx.closePath();
+    ctx.fill() 
+    ctx.stroke();
+}
+
+function drawCrank(x, y, w, h)
+{
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'round';
+    ctx.lineMiter = 'round';
+    ctx.lineWidth = 3;
+
+    let x2a = x + w * 1.0;
+    let x2b = x + w * 1.75;
+    let x2c = x + w * 2.25;
+    let x2d = x + w * 2.5;
+
+    let y2a = y - h * 0.5;
+    let y2b = y - h * 0.35;
+    let y2c = y - h * 0.3;
+    let y2d = y;
+    let y2e = y + h * 0.3;
+    let y2f = y + h * 0.35;
+    let y2g = y + h * 0.5;
+
+    ctx.strokeStyle = cdrk3;
+    ctx.fillStyle = cblk;
+
+    ctx.beginPath();
+    ctx.moveTo(x2a, y2c);
+    ctx.quadraticCurveTo(x2b, y2b, x2c, y2a);
+    ctx.quadraticCurveTo(x2d, y2d, x2c, y2g);
+    ctx.quadraticCurveTo(x2b, y2f, x2a, y2e);
+    ctx.closePath();
+    ctx.fill() 
+    ctx.stroke();
+
+    ctx.strokeStyle = cgry;
+    ctx.fillStyle = cbg2;
+
+    ctx.beginPath();
+    ctx.moveTo(x  , y-h/2);
+    ctx.lineTo(x+w, y-h/2);
+    ctx.lineTo(x+w, y+h/2);
+    ctx.lineTo(x  , y+h/2);
+    ctx.fill() 
+    ctx.stroke();
+}
+
+var tx, ty, tw, th;
+
+var y0kb = 310;
+
+function onDraw()
+{
+    // console.log('onDraw()');
+    
+    setTransform(0, 0, 1, 1);
+    ctx.fillStyle = cblk;
+    ctx.fillRect(0, 0, cw, ch);
+
+    tx = 0;
+    ty = 0;
+    tw = cw / ww;
+    th = ch / wh;
+    if (tw > th) {
+        tw = th;
+        tx = (cw - tw*ww) / 2;
+    }
+    else {
+        th = tw;
+        ty = (ch - th*wh) / 2;
+    }
+    setTransform(tx, ty, tw, th);
+
+    ctx.fillStyle = cbludrk;
+    ctx.fillRect(0, 0, ww, wh);
+
+    let x0 = 90;
+    let w0 = 720;
+
+    drawLever(x0, 150, -40, 35);
+
+    drawLever(x0+w0, 130, 40, -35);
+
+    drawCrank(x0+w0, 190, 60, 40);
+
+    drawLever(x0+w0, 250, 40, 35);
+
+    let rrr = 30;
+    let rrw = 20;
+    let rrh = 250;
+
+    ctx.fillStyle = cbg;
+    ctx.beginPath();
+    ctx.roundRect(x0, wh-rrh-5, w0, rrh, rrr+rrw);
+    ctx.fill();
+
+    ctx.fillStyle = cbludrk;
+    ctx.beginPath();
+    ctx.roundRect(x0+rrw, wh-rrh-5, w0-rrw-rrw, rrh-rrw, rrr);
+    ctx.fill();
+
+    ctx.fillStyle = cbg;
+    ctx.fillRect(x0, 0, w0, y0kb);
+
+    ctx.fillStyle = cbg2;
+    ctx.beginPath();
+    ctx.roundRect(x0+rrw, rrw, w0-rrw-rrw, y0kb-rrw-rrw, rrr);
+    ctx.fill();
+
+    // console.log("ADSD");
+
+    scene.draw();
+}
+
+var dmdrag = null;
+
+function onMouseDown(ev)
+{
+    // console.log(ev);
+    // console.log(this);
+    var wix = ev.pageX - this.offsetLeft; 
+    var wiy = ev.pageY - this.offsetTop;
+    var wox = (wix - tx) / tw;
+    var woy = (wiy - ty) / th;
+    
+    //console.log(wox, woy);
+
+    let but = scene.widgetUnderCursor(wox, woy);
+    if (but == null)
+        return;
+
+    if (but.constructor.name == 'DecMarkDrag') {
+        dmdrag = but;
+        dmdrag.onDragBegin(wox);
+        return;
+    }
+
+    onButClick(but);
+}
+
+function onMouseMove(ev)
+{
+    // console.log(ev);
+    // console.log(this);
+    var wix = ev.pageX - this.offsetLeft; 
+    var wiy = ev.pageY - this.offsetTop;
+    var wox = (wix - tx) / tw;
+    var woy = (wiy - ty) / th;
+    
+    // console.log(wox, woy);
+    if (dmdrag != null) {
+        dmdrag.onDrag(wox);
+        onDraw();
+    }
+}
+
+function onMouseUp(ev)
+{
+    if (dmdrag != null) {
+        dmdrag.onDragUp();
+        onDraw();
+        dmdrag = null;
+    }
+}
+
+function initDaltonKeyboard(x0, y0, kw, kh, mx, my)
+{
+    let topRow = [2,4,5,7,9];
+    let botRow = [1,3,0,6,8];
+
+    // top row
+    let x = x0 + kw/2 + mx/2;
+    let y = y0;
+    for (let i = 0; i < 5; i++) {
+        let n = topRow[i];
+        var tag = {};
+        tag.bgcolor = cblk;
+        tag.bocolor = cdrk3;
+        tag.type = "num";
+        tag.num = n;
+        tag.keyy0 = y0kb;
+        scene.add(new TextButton(n, tag, x, y, kw, kh));
+        x += kw + mx;
+    }
+
+    // bottom row
+    x = x0;
+    y = y0 + kh + my;
+    for (let i = 0; i < 5; i++) {
+        let n = botRow[i];
+        var tag = {};
+        tag.bgcolor = cblk;
+        tag.bocolor = cdrk3;
+        tag.type = "num";
+        tag.num = n;
+        tag.keyy0 = y0kb;
+        scene.add(new TextButton(n, tag, x, y, kw, kh));
+        x += kw + mx;
+    }
+}
+
+function initScene()
+{
+    var drawLeverBorder = false;
+
+    var x0 = 130;
+    var y0 = 300;
+    var w = 50;
+    var w2 = 70;
+    var h = 50;
+    var m = 20;
+    var x = x0;
+    var y = y0;
+
+    initDaltonKeyboard(x0 + 180, y0+35, w, h, 20, 20);
+
+    var x = x0;
+    var y = y0 + h + m;
+
+    var tag = {};
+    tag.bgcolor = cred;
+    tag.bocolor = credrk;
+    tag.keyy0 = y0kb;
+    tag.type = "arrow";
+    tag.dir = -1;
+    scene.add(new TextButton('←', tag, x, y, w2, h));
+    x += w2 + m;
+
+    var tag = {};
+    tag.bgcolor = cred;
+    tag.bocolor = credrk;
+    tag.keyy0 = y0kb;
+    tag.type = "arrow";
+    tag.dir = 1;
+    scene.add(new TextButton('→', tag, x, y, w2, h));
+    x += 480;
+
+    var tag = {};
+    tag.bgcolor = cred;
+    tag.bocolor = credrk;
+    tag.keyy0 = y0kb;
+    tag.type = "arrow";
+    tag.dir = -2;
+    scene.add(new TextButton('⇐', tag, x, y, w2, h));
+
+    let x1reg = x0;
+    let x2reg = x0+400;
+    let y1reg = 100;
+    let y2reg = 220;
+    let y3reg = 240;
+
+    var tag = {};
+    regResult = new NumericRegister(tag, x1reg, y1reg, 13, 40);
+    regResult.text = mce.getResult();
+    scene.add(regResult);
+
+    var tag = {};
+    tag.padMarks = 5
+    tag.numMarks = 8;
+    tag.color = cred;
+    regResultPosMark = new RegPosMark(0, tag, x1reg, y1reg-5, regResult.w, 40+10)
+    scene.add(regResultPosMark);
+
+    var tag = {};
+    tag.dots = false;
+    tag.numPos = 13;
+    var regResultNumStrip = new NumberStrip(tag,
+        regResult.x, regResult.y - 50, regResult.w, 25);
+    scene.add(regResultNumStrip);
+
+    var tag = {};
+    tag.numPos = 13;
+    tag.pos1 = 0;
+    tag.pos2 = 13;
+    var regResultDecMark = new DecMarkRail(tag,
+        regResult.x, regResult.y - 45, regResult.w, 50);
+    scene.add(regResultDecMark);
+    regResultDecMark.addChildrenToScene(scene);
+
+
+    var tag = {};
+    tag.bgcolor = 'transparent';
+    if (drawLeverBorder) tag.bocolor = cblk;
+    tag.type = "clear";
+    tag.target = "result";
+    scene.add(new TextButton('', tag, x1reg - 110, y1reg+20, 70, 160));
+
+    ////////////////////////////
+
+    var tag = {};
+    regInput = new NumericRegister(tag, x1reg, y2reg, 13, 40);
+    regInput.text = mce.getInput();
+    scene.add(regInput);
+
+    var tag = {};
+    tag.dots = true;
+    tag.numPos = 13;
+    var regInputNumStrip = new NumberStrip(tag,
+        regInput.x, regInput.y - 50, regInput.w, 25);
+    scene.add(regInputNumStrip);
+
+    var tag = {};
+    tag.numPos = 13;
+    tag.pos1 = 13;
+    var regInputDecMark = new DecMarkRail(tag,
+        regInput.x, regInput.y - 45, regInput.w, 50);
+    scene.add(regInputDecMark);
+    regInputDecMark.addChildrenToScene(scene);
+
+    var tag = {};
+    tag.bgcolor = 'transparent';
+    if (drawLeverBorder) tag.bocolor = cblk;
+    tag.type = "clear";
+    tag.target = "input";
+    scene.add(new TextButton('', tag, x2reg + 280, y2reg + 10, 70, 150));
+
+    ////////////////////////////
+
+    var tag = {};
+    regCounter = new NumericRegister(tag, x2reg, y1reg, 8, 40);
+    regCounter.text = mce.getCounter();
+    scene.add(regCounter);
+
+    var tag = {};
+    tag.padMarks = 0;
+    tag.numMarks = 8;
+    tag.color = cred;
+    regCounterPosMark = new RegPosMark(0, tag, x2reg, y1reg-5, regCounter.w, 40+10)
+    scene.add(regCounterPosMark);
+
+    var tag = {};
+    tag.dots = false;
+    tag.numPos = 8;
+    var regCounterNumStrip = new NumberStrip(tag,
+        regCounter.x, regCounter.y - 50, regCounter.w, 25);
+    scene.add(regCounterNumStrip);
+
+    var tag = {};
+    tag.numPos = 8;
+    tag.pos1 = 8;
+    var regCounterDecMark = new DecMarkRail(tag,
+        regCounter.x, regCounter.y - 45, regCounter.w, 50);
+    scene.add(regCounterDecMark);
+    regCounterDecMark.addChildrenToScene(scene);
+
+    var tag = {};
+    tag.bgcolor = 'transparent';
+    if (drawLeverBorder) tag.bocolor = cblk;
+    tag.type = "clear";
+    tag.target = "counter";
+    scene.add(new TextButton(' ', tag, x2reg + 280, y1reg - 100, 70, 150));
+
+    var tag = {};
+    tag.oncolor = cred;
+    tag.offcolor = cblk;
+    negInd = new NegIndWindow(false, tag, x2reg + 235, y1reg + 10, 15, 20);
+    scene.add(negInd);
+
+    ////////////////////////////
+
+
+    var tag = {};
+    tag.bgcolor = cgry;
+    tag.type = "crank";
+    tag.dir = "sub";
+    scene.add(new TextButton('↑-', tag, x2reg + 360, y1reg - 10, 90, 60));
+
+    var tag = {};
+    tag.bgcolor = cgry;
+    tag.type = "crank";
+    tag.dir = "add";
+    scene.add(new TextButton('↓+', tag, x2reg + 360, y2reg + 10, 90, 60));
+
+
+
+}
+
+function onButClick(but)
+{
+    // console.log(but);
+    // console.log(but.constructor.name);
+    // console.log(but.tag);
+
+    let tag = but.tag;
+
+    if (tag.type == 'num')
+    {
+        mce.notifyNumKey(tag.num);
+        regInput.text = mce.getInput();
+        onDraw();
+    }
+
+    else if (tag.type == 'arrow')
+    {
+        if (tag.dir == -1)
+            mce.notifyMoveLeft();
+        else if (tag.dir == 1)
+            mce.notifyMoveRight();
+        else
+            mce.notifyMoveLeftAll();
+
+        regInput.text = mce.getInput();
+        regResultPosMark.pos = mce.getPosition();
+        regCounterPosMark.pos = mce.getPosition();
+        onDraw();
+    }
+
+    else if (tag.type == 'clear')
+    {
+        if (tag.target == 'result') {
+            mce.notifyClearResult();
+            regResult.text = mce.getResult();
+        }
+        else if (tag.target == 'counter') {
+            mce.notifyClearCounter();
+            regCounter.text = mce.getCounter();
+            negInd.state = false;
+        }
+        else if (tag.target == 'input') {
+            mce.notifyClearInput();
+            regInput.text = mce.getInput();
+            regResultPosMark.pos = mce.getPosition();
+            regCounterPosMark.pos = mce.getPosition();
+        }
+        onDraw();
+    }
+
+    else if (tag.type == 'crank')
+    {
+        if (tag.dir == 'add')
+            mce.notifyCrankAdd();
+        else
+            mce.notifyCrankSub();
+        regResult.text = mce.getResult();
+        regCounter.text = mce.getCounter();
+        if (mce.getDirection() < 0)
+            negInd.state = true;
+        else
+            negInd.state = false;
+        onDraw();
+    }
+}
+
+class Widget
+{
+    constructor(x, y, w, h)
+    {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+    }
+
+    isPointInside(x, y) {
+        if (x < this.x) return false;
+        if (y < this.y) return false;
+        if (x > (this.x + this.w)) return false;
+        if (y > (this.y + this.h)) return false;
+        return true;
+    }
+
+    draw() {};
+}
+
+class Group extends Widget
+{
+    constructor(x, y, w, h)
+    {
+        super(x, y, w, h);
+        this.children = [];
+    }
+
+    add(widget)
+    {
+        this.children.push(widget);
+        // console.log(this.children.length);
+    }
+
+    draw()
+    {
+        for (let i = 0; i < this.children.length; i++)
+            this.children[i].draw();
+    }
+
+    widgetUnderCursor(x, y)
+    {
+        for (let i = 0; i < this.children.length; i++) {
+            let iinv = this.children.length - i - 1;
+            let child = this.children[iinv];
+            if (child.isPointInside(x, y))
+            return child;
+        }
+        return null;
+    }
+}
+
+class Button extends Widget
+{
+    constructor(tag, x, y, w, h)
+    {
+        super(x, y, w, h);
+        this.tag = tag;
+        this.action = null;
+    }
+
+    condclick(x, y) {
+        if (action != null && isPointInside(x, y))
+            action(this);
+    }
+
+    click() {
+        if (action != null)
+            action(this);
+    }
+
+}
+
+function drawArrow(x, y, w, ah, ball)
+{
+    ctx.fillStyle = 'white';
+    ctx.strokeStyle = 'white';
+
+    let k1 = 0.333;
+    let k2 = 0.666;
+
+    let lw = Math.abs(ah / 6);
+
+    ctx.lineWidth = Math.abs(ah / 10);
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x+ah,y-k1*ah, x+ah/k2, y-ah);
+    ctx.lineTo(x+ah, y-lw);
+    ctx.lineTo(x+w, y-lw);
+    ctx.lineTo(x+w, y+lw);
+    ctx.lineTo(x+ah, y+lw);
+    ctx.lineTo(x+ah/k2, y+ah);
+    ctx.quadraticCurveTo(x+ah,y+k1*ah, x, y);
+    ctx.fill();
+    ctx.stroke();
+
+    if (ball) {
+        let r = Math.abs(ah / 2.5);
+        ctx.beginPath();
+        ctx.arc(x+w, y, r, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.stroke();
+    }
+}
+
+
+
+class TextButton extends Button
+{
+    constructor(txt, tag, x, y, w, h)
+    {
+        super(tag, x, y, w, h);
+        this.txt = txt;
+    }
+
+    draw()
+    {
+        // console.log("draw", this.txt);
+
+        // console.log(this.tag);
+        if ('keyy0' in this.tag)
+        {
+            let x = this.x + this.w/2;
+            let y = this.y + this.h/2;
+            ctx.lineCap = 'butt';
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = cdrk2;
+            ctx.beginPath();
+            ctx.moveTo(x, this.tag.keyy0);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = cgry;
+            ctx.stroke();
+        }
+
+        ctx.fillStyle = this.tag.bgcolor;
+        ctx.beginPath();
+        if (this.tag.type != 'clear')
+            ctx.roundRect(this.x, this.y, this.w, this.h, this.h / 5);
+        else
+            ctx.rect(this.x, this.y, this.w, this.h, this.h / 5);
+
+        ctx.fill();
+        if ('bocolor' in this.tag) {
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = this.tag.bocolor;
+            ctx.stroke();
+        }
+
+        if (this.tag.type == 'arrow') {
+            let w = 0.7 * this.w;
+            let x = this.x + (this.w - w)/2;
+            let ah = w / 4;
+            let y = this.y + this.h/2;
+            if (this.tag.dir == -1)
+                drawArrow(x, y, w, ah, false);
+                else if (this.tag.dir == -2)
+                drawArrow(x, y, w*.9, ah, true);
+            else if (this.tag.dir == 1)
+                drawArrow(x+w, y, -w, -ah, false);
+            return;
+        }
+
+        let h = this.h;
+        h *= 0.7;
+
+        let fh = 2;
+        if (this.tag.type == 'num')
+            fh = 1.8;
+        else if (this.tag.type == 'clear')
+            fh = 1.8;
+        else if (this.tag.type == 'crank')
+            fh = 1.8;
+
+        ctx.font = h + 'px B612 Mono';
+        ctx.font = 'bold ' + ctx.font;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+
+        ctx.fillStyle = cwhi;
+        ctx.fillText(''+this.txt, this.x+this.w/2, this.y+this.h/fh);
+    }
+}
+
+class NegIndWindow extends Widget
+{
+    constructor(state, tag, x, y, w, h)
+    {
+        super(x, y, w, h);
+        this.state = state;
+        this.tag = tag;
+    }
+
+    draw()
+    {
+        if (this.state)
+            ctx.fillStyle = this.tag.oncolor;
+        else
+            ctx.fillStyle = this.tag.offcolor;
+
+        ctx.beginPath();
+        ctx.roundRect(this.x, this.y, this.w, this.h, this.h / 5);
+        ctx.fill();
+    }
+}
+
+class RegPosMark extends Widget
+{
+    constructor(pos, tag, x, y, w, h)
+    {
+        super(x, y, w, h);
+        this.pos = pos;
+        this.tag = tag;
+    }
+
+    draw()
+    {
+        // console.log(this);
+        // console.log("draw pos: " + this.pos);
+        let debug = false;
+        if (debug) {
+            ctx.strokeStyle = '#FC0';
+            ctx.strokeRect(this.x, this.y, this.w, this.h);
+        }
+
+        let nch = this.tag.padMarks + this.tag.numMarks;
+        let cw = this.w / nch;
+        let ch = this.h;
+
+        let x = this.x + cw * (nch - this.pos - 0.5);
+        let y = this.y + this.h;
+        let w2 = cw / 4;
+        let h2 = cw / 4;
+
+        ctx.fillStyle = this.tag.color;
+        ctx.beginPath();
+        x -= w2;
+        ctx.moveTo(x, y);
+        y -= h2;
+        ctx.lineTo(x, y);
+        x += w2;
+        y -= h2;
+        ctx.lineTo(x, y);
+        x += w2;
+        y += h2;
+        ctx.lineTo(x, y);
+        y += h2;
+        ctx.lineTo(x, y);
+        ctx.closePath();
+        ctx.fill();
+    }
+}
+
+class NumericRegister extends Widget
+{
+    constructor(tag, x, y, ndigits, h)
+    {
+        let ar = 0.7;
+        let w = ndigits * h * ar;
+        super(x, y, w, h);
+        this.ar = ar;
+        this.ndigits = ndigits;
+        this.tag = tag;
+        this.text = '';
+    }
+
+    draw()
+    {
+        let h = this.h;
+        let mx = 0.1 * h * this.ar;
+
+        let rr = 2*mx;
+
+        ctx.fillStyle = cdrk3;
+        ctx.roundRect(this.x-rr/2, this.y, this.w+rr, this.h,rr);
+        ctx.fill();
+
+        let txt = this.text;
+        if (txt.length != this.ndigits) {
+            console.log("bad text length", this);
+            return;
+        }
+
+        let h2 = h * 0.75;
+
+        let w = 0.8 * h * this.ar;
+        let w2 = w / 2;
+
+        let fh = 1.75;
+
+        let x = this.x;
+        let y = this.y;
+        ctx.fillStyle = cblk;
+        for (let i = 0; i < txt.length; i++)
+        {
+            let ch = txt[i];
+            if (ch == '|') continue;
+
+            x += mx;
+            ctx.fillRect(x, y, w, h);
+            x += w + mx;
+        }
+
+        ctx.font = h2 + 'px B612 Mono';
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+
+        x = this.x;
+        ctx.fillStyle = cwhi;
+        for (let i = 0; i < txt.length; i++)
+        {
+            let ch = txt[i];
+            if (ch == '|') continue;
+            
+            x += mx + w2;
+            ctx.fillStyle = cwhi;
+            ctx.fillText(''+ch, x, y+h/fh);
+            x += mx + w2;
+        }
+    }
+}
+
+class DecMarkRail extends Widget
+{
+    constructor(tag, x, y, w, h)
+    {
+        super(x, y, w, h);
+        this.tag = tag;
+    }
+
+    addChildrenToScene(scn)
+    {
+        let w = this.w / this.tag.numPos;
+        let x = this.x + w * this.tag.pos1;
+        this.dmg1 = new DecMarkDrag(this, x-w, this.y, w+w, this.h);
+        this.dmg1.left = null;
+        this.dmg1.right = null;
+        scn.add(this.dmg1);
+        if ('pos2' in this.tag) {
+            x = this.x + w * this.tag.pos2;
+            this.dmg2 = new DecMarkDrag(this, x-w, this.y, w+w, this.h);
+            this.dmg2.left = this.dmg1;
+            this.dmg2.right = null;
+            this.dmg1.right = this.dmg2;
+            scn.add(this.dmg2);
+        }
+        this.cw = w;
+    }
+
+    draw()
+    {
+        let debug = false;
+        if (debug) {
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#FC0';
+            ctx.strokeRect(this.x, this.y, this.w, this.h);
+        }
+
+        let w = this.w / this.tag.numPos;
+        let h = 6;
+        let x = this.x;
+        let y = this.y + this.h/2;
+        ctx.strokeStyle = cdrk3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + this.w, y);
+        ctx.stroke();
+    }
+}
+
+class DecMarkDrag extends Widget
+{
+    constructor(parent, x, y, w, h)
+    {
+        super(x, y, w, h);
+        this.parent = parent;
+    }
+
+    draw()
+    {
+        let debug = false;
+        if (debug) {
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#FC0';
+            ctx.strokeRect(this.x, this.y, this.w, this.h);
+        }
+
+        this.drawDrop(this.x + this.w / 2, this.y + this.h/2,
+            this.h / 6, this.h/2);
+    }
+
+    drawDrop(x,y,r,l)
+    {
+        let a = Math.asin(r/l);
+
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = cgry;
+        ctx.fillStyle = cbei;
+        ctx.beginPath();
+        ctx.arc(x, y, r, Math.PI-a, a);
+        ctx.lineTo(x, y+l);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    onDragBegin(x)
+    {
+        this.dx = this.x - x;
+    }
+
+    onDrag(x)
+    {
+        if (this.left == null && this.right == null)
+        {
+            let dstx = x + this.dx;
+            let xmin = this.parent.x - this.parent.cw;
+            let xmax = this.parent.w + xmin;
+            if (dstx < xmin)
+                dstx = xmin;
+            if (dstx > xmax)
+                dstx = xmax;
+            this.x = dstx;
+        }
+        else if (this.right != null)
+        {
+            let dstx = x + this.dx;
+            let xmin = this.parent.x - this.parent.cw;
+            let xmax = this.parent.w + xmin - 2*this.parent.cw;
+            if (dstx < xmin)
+                dstx = xmin;
+            if (dstx > xmax)
+                dstx = xmax;
+            this.x = dstx;
+            if (this.right.x < this.x + this.w)
+                this.right.x = this.x + this.w;
+        }
+        else if (this.left != null)
+        {
+            let dstx = x + this.dx;
+            let xmin = this.parent.x + this.parent.cw;
+            let xmax = this.parent.w + xmin - 2*this.parent.cw;
+            if (dstx < xmin)
+                dstx = xmin;
+            if (dstx > xmax)
+                dstx = xmax;
+            this.x = dstx;
+            if (this.left.x > this.x - this.w)
+                this.left.x = this.x - this.w;
+        }
+    }
+
+    onDragUp()
+    {
+        let nx = this.x - this.parent.x + 2*this.parent.cw;
+        nx = parseInt(nx/this.parent.cw - 0.5) - 1;
+        this.x = this.parent.x + nx * this.parent.cw;
+        if (this.left != null) {
+            let nx = this.left.x - this.parent.x + 2*this.parent.cw;
+            nx = parseInt(nx/this.parent.cw - 0.5) - 1;
+            this.left.x = this.parent.x + nx * this.parent.cw;
+        }
+        if (this.right != null) {
+            let nx = this.right.x - this.parent.x + 2*this.parent.cw;
+            nx = parseInt(nx/this.parent.cw - 0.5) - 1;
+            this.right.x = this.parent.x + nx * this.parent.cw;
+        }
+    }
+}
+
+class NumberStrip extends Widget
+{
+    constructor(tag, x, y, w, h)
+    {
+        super(x, y, w, h);
+        this.tag = tag;
+    }
+
+    draw()
+    {
+        if (this.tag.dots)
+            this.drawWithDots();
+        else
+            this.drawWithNumbers();
+    }
+
+    drawWithNumbers()
+    {
+        let debug = false;
+        if (debug) {
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#FC0';
+            ctx.strokeRect(this.x, this.y, this.w, this.h);
+        }
+
+        let w = this.w / this.tag.numPos;
+        let x = this.x;
+        let y = this.y;
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = cgry;
+        ctx.strokeRect(x-w/2, y, this.w+w, this.h);
+
+        let h = this.h;
+        h *= 0.5;
+
+        let fh = 1.1;
+
+        ctx.font = h + 'px B612 Mono';
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+
+        x = this.x;
+        ctx.fillStyle = cwhi;
+        for (let i = 0; i < this.tag.numPos; i++)
+        {
+            let txt = '' + (this.tag.numPos - i);
+            ctx.fillText(txt, x, y+h*fh);
+            x += w;
+        }
+
+    }
+
+    drawWithDots()
+    {
+        let debug = false;
+        if (debug) {
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#FC0';
+            ctx.strokeRect(this.x, this.y, this.w, this.h);
+        }
+
+        let w = this.w / this.tag.numPos;
+        let x = this.x;
+        let y = this.y + this.h/2;
+        let r = w / 8;
+        ctx.fillStyle = cgry;
+        for (let i = 0; i < this.tag.numPos; i++)
+        {
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, 2*Math.PI);
+            ctx.fill();
+            x += w;
+        }
+
+    }
+
+}
+
+function newMechCalcEmu()
+{
+    // value to be returned;
+    var mce = {};
+
+    // r: result, c: counter, n: input
+    var nr = 13;
+    var ni = 13;
+    var nc = 8;
+
+    var s = ' ';    // space
+    var p = '|';    // pipe
+    var res = [0,0,0,0,0,0,0,0,0,0,0,0,0];
+    var inp = [s,s,s,s,s,s,s,s,s,s,s,s,s];
+    var ctr = [0,0,0,0,0,0,0,0];
+
+    var pos = 0;
+    var posmin = 0;
+    var posmax = 7;
+
+    var dir = 0;
+
+    var inputActive = true;
+
+    mce.getResult = function() {
+        str = '';
+        for (let i = 0; i < nr; i++)
+            str = '' + res[i] + str;
+        return str;
+    }
+
+    mce.getInput = function() {
+        str = '';
+        for (let i = 0; i < ni; i++)
+            str = '' + inp[i] + str;
+        return str;
+    }
+
+    mce.getCounter = function() {
+        str = '';
+        for (let i = 0; i < nc; i++)
+            str = '' + ctr[i] + str;
+        return str;
+    }
+
+    mce.getPosition = function() {
+        return pos;
+    }
+
+    mce.getDirection = function() {
+        return dir;
+    }
+
+    mce.notifyNumKey = function(n) {
+        if (inputActive) {
+            inp.unshift(n);
+            inp.pop();
+        }
+    }
+
+    mce.notifyMoveLeft = function() {
+        if (pos < posmax)  {
+            pos++;
+            inputActive = false;
+            inp.unshift(p);
+            inp.pop();
+        }
+    }
+
+    mce.notifyMoveRight = function() {
+        if (pos > posmin) {
+            pos--;
+            inputActive = false;
+            inp.shift();
+            inp.push(s);
+        }
+    }
+
+    mce.notifyMoveLeftAll = function() {
+        if (inputActive)
+        {
+            var nls = countLeadingSpacesInInput();
+            // console.log('nls:',nls);
+            if (nls > 7) {
+                var ntz = nls - 7;  // num trailing zeros
+                for (let i = 0; i < ntz; i++) {
+                    inp.unshift(0);
+                    inp.pop();
+                }
+                nls = 7;
+            }
+            for (let i = 0; i < nls; i++) {
+                inp.unshift(p);
+                inp.pop();
+            }
+            pos = nls;
+            inputActive = false;
+        }
+        else {
+            while (pos < posmax) {
+                pos++;
+                inp.unshift(p);
+                inp.pop();
+            }
+        }
+    }
+
+    mce.notifyClearResult = function() {
+        res = [0,0,0,0,0,0,0,0,0,0,0,0,0];
+    }
+
+    mce.notifyClearInput = function() {
+        inp = [s,s,s,s,s,s,s,s,s,s,s,s,s];
+        pos = 0;
+        inputActive = true;
+    }
+
+    mce.notifyClearCounter = function() {
+        ctr = [0,0,0,0,0,0,0,0];
+        dir = 0;
+    }
+
+    mce.notifyCrankAdd = function() {
+        if (dir == 0) dir = 1;
+        processResult(1);
+        processCounter(dir);
+    }
+
+    mce.notifyCrankSub = function() {
+        if (dir == 0) dir = -1;
+        processResult(-1);
+        processCounter(-dir);
+    }
+
+    // initialize
+    mce.notifyClearResult();
+    mce.notifyClearInput();
+    mce.notifyClearCounter();
+
+    function processResult(inc)
+    {
+        let carry = 0;
+        for (let i = 0; i < ni; i++)
+        {
+            let ival = inp[i];
+            let rval = res[i];
+            if (carry != 0) {
+                rval += carry;
+                carry = 0;
+            }
+
+            if (ival != s && ival != p)
+                rval += ival * inc;
+
+            if (rval >= 10) {
+                rval -= 10;
+                carry = 1;
+            }
+            else if (rval < 0) {
+                rval += 10;
+                carry = -1;
+            }
+            res[i] = rval;
+        }
+    }
+
+    function processCounter(inc)
+    {
+        let carry = 0;
+        for (let i = pos; i < nc; i++)
+        {
+            let cval = ctr[i];
+            if (carry != 0) {
+                cval += carry;
+                carry = 0;
+            }
+
+            if (i == pos)
+                cval += inc;
+
+            if (cval >= 10) {
+                cval -= 10;
+                carry = 1;
+            }
+            else if (cval < 0) {
+                cval += 10;
+                carry = -1;
+            }
+            ctr[i] = cval;
+        }
+    }
+
+    function countLeadingSpacesInInput()
+    {
+        for (let i = 0; i < ni; i++)
+        {
+            let ival = '' + inp[i];
+            if (ival == s)
+            return ni - i;
+        }
+        return ni;
+    }
+
+    return mce;
+}
+
+var mce = newMechCalcEmu();
+
+var scene = new Group();
+
+var regCounter;
+var regResult;
+var regInput;
+
+var negInd;
+
+var regCounterPosMark;
+var regResultPosMark;
+
+CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    if (w < 2 * r) r = w / 2;
+    if (h < 2 * r) r = h / 2;
+    this.beginPath();
+    this.moveTo(x+r, y);
+    this.arcTo(x+w, y,   x+w, y+h, r);
+    this.arcTo(x+w, y+h, x,   y+h, r);
+    this.arcTo(x,   y+h, x,   y,   r);
+    this.arcTo(x,   y,   x+w, y,   r);
+    this.closePath();
+    return this;
+}
+
+
+
+/**********************************/        
+    </script>
+</body>
+</html>
