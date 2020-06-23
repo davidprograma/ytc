@@ -46,6 +46,42 @@ var ch;
 var ww = 1000;
 var wh = 500;
 
+var audio = {};
+
+function addAudio(name) {
+    audio[name] = {};
+    audio[name].clip0 = new Audio('./sfx/'+name+'.wav');
+    audio[name].clip1 = new Audio('./sfx/'+name+'.wav');
+    audio[name].next = 0;
+}
+
+addAudio('crankbwd');
+addAudio('crankfwd');
+addAudio('delctr');
+addAudio('delinp');
+addAudio('delres');
+addAudio('keyblk');
+addAudio('keyleft');
+addAudio('keynum');
+addAudio('keyright');
+addAudio('keytab');
+
+function safePlay(audioname) {
+    var audioclip;
+    if (0 == audioname.next) {
+        audioclip = audioname.clip0;
+        audioname.next = 1;
+    }
+    else {
+        audioclip = audioname.clip1;
+        audioname.next = 0;
+    }
+    audioclip.volume = 0;
+    audioclip.currentTime = 0;
+    audioclip.volume = 1;
+    audioclip.play();
+}
+
 function onInit()
 {
     // console.logconsole.log('onInit');
@@ -60,21 +96,6 @@ function onInit()
     window.addEventListener('resize', onResize);
     onResize();
 
-    // if ('ontouchstart' in window)
-    // {
-    //     canvas.addEventListener('touchstart', onMouseDown);
-    //     canvas.addEventListener('touchmove', onMouseMove);
-    //     canvas.addEventListener('touchend', onMouseUp);
-    //     canvas.addEventListener('touchcancel', onMouseUp);
-    // }
-    // else
-    // {
-    //     canvas.addEventListener('mousedown', onMouseDown);
-    //     canvas.addEventListener('mousemove', onMouseMove);
-    //     canvas.addEventListener('mouseup', onMouseUp);
-    //     canvas.addEventListener('mouseleave', onMouseUp);
-    //     canvas.addEventListener('mouseout', onMouseUp);
-    // }
     if (userAgent.match(/iPad/i) || userAgent.match(/iPhone/i)) 
     {
         canvas.addEventListener('mousedown', onMouseDown);
@@ -93,7 +114,6 @@ function onInit()
     }
 }
 
-
 function onResize()
 {
     cw = window.innerWidth;
@@ -103,7 +123,6 @@ function onResize()
 
     onDraw();
 }
-
 
 var cbludrk = '#123';
 var cbg = '#AAA';
@@ -215,6 +234,34 @@ function drawCrank(x, y, w, h)
     ctx.stroke();
 }
 
+function drawLogo(x, y, w, h)
+{
+    ctx.fillStyle = cblk;
+    ctx.roundRect(x, y, w, h, h/2);
+    ctx.fill();
+
+    let h2 = h * 0.75;
+
+    ctx.font = h2 + 'px Arial';
+    ctx.font = 'bold ' + ctx.font;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+
+    ctx.fillStyle = cwhi;
+    ctx.fillText('F   A   C   I   T', x+w/2, y+h/1.8);
+}
+
+function drawMobileRotateHint(x, y)
+{
+    ctx.font = 50 + 'px Arial';
+    ctx.font = 'bold ' + ctx.font;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+
+    ctx.fillStyle = cwhi;
+    ctx.fillText('please rotate ⟲ your device', x, y);
+}
+
 var tx, ty, tw, th;
 
 var y0kb = 310;
@@ -277,7 +324,9 @@ function onDraw()
     ctx.roundRect(x0+rrw, rrw, w0-rrw-rrw, y0kb-rrw-rrw, rrr);
     ctx.fill();
 
-    // console.log("ADSD");
+    drawLogo(x0+450, 190, 200, 30);
+
+    drawMobileRotateHint(ww/2, wh*3/2);
 
     scene.draw();
 }
@@ -286,15 +335,11 @@ var dmdrag = null;
 
 function onMouseDown(ev)
 {
-    // console.log(ev);
-    // console.log(this);
     var wix = ev.pageX - this.offsetLeft; 
     var wiy = ev.pageY - this.offsetTop;
     var wox = (wix - tx) / tw;
     var woy = (wiy - ty) / th;
     
-    //console.log(wox, woy);
-
     let but = scene.widgetUnderCursor(wox, woy);
     if (but == null)
         return;
@@ -310,14 +355,11 @@ function onMouseDown(ev)
 
 function onMouseMove(ev)
 {
-    // console.log(ev);
-    // console.log(this);
     var wix = ev.pageX - this.offsetLeft; 
     var wiy = ev.pageY - this.offsetTop;
     var wox = (wix - tx) / tw;
     var woy = (wiy - ty) / th;
     
-    // console.log(wox, woy);
     if (dmdrag != null) {
         dmdrag.onDrag(wox);
         onDraw();
@@ -541,6 +583,11 @@ function initScene()
     tag.dir = "add";
     scene.add(new TextButton('↓+', tag, x2reg + 360, y2reg + 10, 90, 60));
 
+    var tag = {};
+    tag.bgcolor = cgry;
+    tag.type = "help";
+    scene.add(new TextButton('?', tag, x2reg + 360, y2reg + 200, 90, 60));
+
 
 
 }
@@ -608,6 +655,11 @@ function onButClick(but)
         else
             negInd.state = false;
         onDraw();
+    }
+
+    else if (tag.type == 'help')
+    {
+        window.location.href = './help.html';
     }
 }
 
@@ -718,8 +770,6 @@ function drawArrow(x, y, w, ah, ball)
     }
 }
 
-
-
 class TextButton extends Button
 {
     constructor(txt, tag, x, y, w, h)
@@ -730,9 +780,6 @@ class TextButton extends Button
 
     draw()
     {
-        // console.log("draw", this.txt);
-
-        // console.log(this.tag);
         if ('keyy0' in this.tag)
         {
             let x = this.x + this.w/2;
@@ -780,7 +827,7 @@ class TextButton extends Button
         let h = this.h;
         h *= 0.7;
 
-        let fh = 2;
+        let fh = 1.8;
         if (this.tag.type == 'num')
             fh = 1.8;
         else if (this.tag.type == 'clear')
@@ -1221,9 +1268,18 @@ function newMechCalcEmu()
     }
 
     mce.notifyNumKey = function(n) {
+        var nls = countLeadingSpacesInInput();
+        if (nls <= 4) {
+            inputActive = false;
+        }
+
         if (inputActive) {
             inp.unshift(n);
             inp.pop();
+            safePlay(audio.keynum);
+        }
+        else {
+            safePlay(audio.keyblk);
         }
     }
 
@@ -1233,6 +1289,10 @@ function newMechCalcEmu()
             inputActive = false;
             inp.unshift(p);
             inp.pop();
+            safePlay(audio.keyleft);
+        }
+        else {
+            safePlay(audio.keyblk);
         }
     }
 
@@ -1242,6 +1302,10 @@ function newMechCalcEmu()
             inputActive = false;
             inp.shift();
             inp.push(s);
+            safePlay(audio.keyright);
+        }
+        else {
+            safePlay(audio.keyblk);
         }
     }
 
@@ -1264,8 +1328,15 @@ function newMechCalcEmu()
             }
             pos = nls;
             inputActive = false;
+            safePlay(audio.keytab);
         }
         else {
+            if (pos < posmax) {
+                safePlay(audio.keytab);
+            }
+            else {
+                safePlay(audio.keyblk);
+            }
             while (pos < posmax) {
                 pos++;
                 inp.unshift(p);
@@ -1276,35 +1347,48 @@ function newMechCalcEmu()
 
     mce.notifyClearResult = function() {
         res = [0,0,0,0,0,0,0,0,0,0,0,0,0];
+        safePlay(audio.delres);
     }
 
     mce.notifyClearInput = function() {
         inp = [s,s,s,s,s,s,s,s,s,s,s,s,s];
         pos = 0;
         inputActive = true;
+        safePlay(audio.delinp);
     }
 
     mce.notifyClearCounter = function() {
         ctr = [0,0,0,0,0,0,0,0];
         dir = 0;
+        safePlay(audio.delctr);
     }
 
     mce.notifyCrankAdd = function() {
         if (dir == 0) dir = 1;
         processResult(1);
         processCounter(dir);
+        safePlay(audio.crankfwd);
+        inputActive = false;
     }
 
     mce.notifyCrankSub = function() {
         if (dir == 0) dir = -1;
         processResult(-1);
         processCounter(-dir);
+        safePlay(audio.crankbwd);
+        inputActive = false;
     }
 
     // initialize
-    mce.notifyClearResult();
-    mce.notifyClearInput();
-    mce.notifyClearCounter();
+    // mce.notifyClearResult();
+    res = [0,0,0,0,0,0,0,0,0,0,0,0,0];
+    // mce.notifyClearInput();
+    inp = [s,s,s,s,s,s,s,s,s,s,s,s,s];
+    pos = 0;
+    inputActive = true;
+    // mce.notifyClearCounter();
+    ctr = [0,0,0,0,0,0,0,0];
+    dir = 0;
 
     function processResult(inc)
     {
