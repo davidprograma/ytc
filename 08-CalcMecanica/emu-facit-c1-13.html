@@ -90,29 +90,60 @@ function onInit()
 
     initScene();
 
-    var userAgent = window.navigator.userAgent;
-
-    
     window.addEventListener('resize', onResize);
     onResize();
 
-    if (userAgent.match(/iPad/i) || userAgent.match(/iPhone/i)) 
-    {
-        canvas.addEventListener('mousedown', onMouseDown);
-        canvas.addEventListener('mousemove', onMouseMove);
-        canvas.addEventListener('mouseup', onMouseUp);
-        canvas.addEventListener('mouseleave', onMouseUp);
-        canvas.addEventListener('mouseout', onMouseUp);
+    setTouchHandler(canvas, onMouseDown, onMouseMove, onMouseUp);
+}
+
+function genericTouchHandler(f) {
+	return function (e) {
+		if (e.touches.length == 1) {
+			if (f(e.touches[0])) {
+				e.preventDefault();
+				return false;
+			}
+		}
+	}
+}
+
+window.setTouchHandler = function (target, begin, move, end)
+{
+	target.onmousedown = mouse_down;
+    target.ontouchstart = genericTouchHandler(mouse_down);
+
+	var move_handler = genericTouchHandler(mouse_move);
+	
+	function mouse_down(e) {
+        window.addEventListener("mousemove", mouse_move, false);
+        window.addEventListener("mouseup", mouse_up, false);
+
+        window.addEventListener("touchmove", move_handler, false);
+        window.addEventListener("touchend", mouse_up, false);
+		window.addEventListener("touchcancel", mouse_up, false);
+
+        if (e.preventDefault)
+            e.preventDefault();
+
+        return begin ? begin(e) : true;
     }
-    else
-    {
-        canvas.addEventListener('pointerdown', onMouseDown);
-        canvas.addEventListener('pointermove', onMouseMove);
-        canvas.addEventListener('pointerup', onMouseUp);
-        canvas.addEventListener('pointerleave', onMouseUp);
-        canvas.addEventListener('pointerout', onMouseUp);
+
+    function mouse_move(e) {
+		return move ? move (e) : true;
+	}
+
+    function mouse_up(e) {
+        window.removeEventListener("mousemove", mouse_move, false);
+        window.removeEventListener("mouseup", mouse_up, false);
+
+        window.removeEventListener("touchmove", move_handler, false);
+        window.removeEventListener("touchend", mouse_up, false);
+		window.removeEventListener("touchcancel", mouse_up, false);
+		
+		return end ? end(e) : true;
     }
 }
+
 
 function onResize()
 {
@@ -335,8 +366,8 @@ var dmdrag = null;
 
 function onMouseDown(ev)
 {
-    var wix = ev.pageX - this.offsetLeft; 
-    var wiy = ev.pageY - this.offsetTop;
+    var wix = ev.pageX - ev.target.offsetLeft; 
+    var wiy = ev.pageY - ev.target.offsetTop;
     var wox = (wix - tx) / tw;
     var woy = (wiy - ty) / th;
     
@@ -351,12 +382,14 @@ function onMouseDown(ev)
     }
 
     onButClick(but);
+
+    return true;
 }
 
 function onMouseMove(ev)
 {
-    var wix = ev.pageX - this.offsetLeft; 
-    var wiy = ev.pageY - this.offsetTop;
+    var wix = ev.pageX - ev.target.offsetLeft; 
+    var wiy = ev.pageY - ev.target.offsetTop;
     var wox = (wix - tx) / tw;
     var woy = (wiy - ty) / th;
     
@@ -364,6 +397,8 @@ function onMouseMove(ev)
         dmdrag.onDrag(wox);
         onDraw();
     }
+
+    return true;
 }
 
 function onMouseUp(ev)
@@ -373,6 +408,7 @@ function onMouseUp(ev)
         onDraw();
         dmdrag = null;
     }
+    return true;
 }
 
 function initDaltonKeyboard(x0, y0, kw, kh, mx, my)
