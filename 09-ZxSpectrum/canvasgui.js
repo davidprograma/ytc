@@ -254,15 +254,24 @@ class SingleWindow extends Group
             this.wo.w = this.wi.w;
             this.wo.h = this.wi.h;
         }
-        else if (this.dstw <= 0)
+        else if (this.dst.w <= 0)
         {
             this.woh = this.dsth;
 
         }
-        else if (this.dsth <= 0)
+        else if (this.dst.h <= 0)
         {
-            
-        }
+            this.wo.w = this.dst.w;
+            this.wo.h = -this.dst.h;
+
+            this.xf.x = 0;
+            this.xf.y = 0;
+            this.xf.w = this.wi.w / this.wo.w;
+            this.xf.h = this.wi.h / this.wo.h;
+        
+            this.xf.h = this.xf.w;
+            this.xf.y = 0;
+       }
         else
         {
             this.wo.w = this.dst.w;
@@ -272,7 +281,7 @@ class SingleWindow extends Group
             this.xf.y = 0;
             this.xf.w = 1;
             this.xf.h = 1;
-       }
+        }
         
         this._ondraw();
     }
